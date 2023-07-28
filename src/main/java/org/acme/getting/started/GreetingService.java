@@ -17,7 +17,8 @@ public class GreetingService {
         return Integer.toString(text.hashCode() % (int) (Math.random() * 100));
     }
 
-    // Goal here is to create events to drive the JFR infrastructure
+    /** This endpoint is used to test new JFR development changes. Always with JFR recording.
+     * Tries to emphasize impact of JFR changes on performance.*/
     public String work(String text) {
         String result = "";
         for (int i = 0; i < 1000; i++){
@@ -32,6 +33,24 @@ public class GreetingService {
             customEvent.commit();
         }
 
+        return result;
+    }
+
+    /** This endpoint is used to compare between with/without JFR built into the image.
+     * Therefore it must not use any custom JFR events or the Event API at all, to avoid runtime errors.
+     * It should have less unrealistic tasks, unlike GreetingService#work which simply loops to create many events.*/
+    public String regular(String text) { //TODO not sure how to highlight differences here.
+        String result = text;
+//        int count = (int) (Math.random() * (30)) + 10;
+//
+//        for (int i = 0; i < 100; i++) {
+//            String temp = Integer.toString(result.hashCode()).repeat(count);
+//            result = "";
+//            for (int j = 0; j < temp.length(); j += 2) {
+//                result += temp.charAt(j);
+//            }
+//        }
+        LockSupport.parkNanos(this,1);
         return result;
     }
 }

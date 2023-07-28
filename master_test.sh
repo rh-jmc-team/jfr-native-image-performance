@@ -1,28 +1,35 @@
 #!/usr/bin/bash
-export JAVA_HOME=/home/rtoyonag/JDKs/labsjdk-ce-20-jvmci-23.0-b10
-export PATH=/home/rtoyonag/repos/mx:$PATH
-export GRAALVM_HOME=/home/rtoyonag/IdeaProjects/graal/vm/latest_graalvm_home
+# Set the paths below before running!
+# ----------------------------------------------------------------------
 
-THIS_REPO=/home/rtoyonag/IdeaProjects/jfr-native-image-performance
+export JAVA_HOME=/home/rtoyonag/JDKs/labsjdk-ce-20-jvmci-23.0-b10
+export GRAALVM_HOME=/home/rtoyonag/IdeaProjects/graal/vm/latest_graalvm_home # This is where GraalVM will be built, or wherever your pre-build installationg of GraalVM/Mandrel is
+
+THIS_REPO=/home/rtoyonag/IdeaProjects/jfr-native-image-performance #The location of this repository
+
+GRAALVM_SOURCE_HOME=/home/rtoyonag/IdeaProjects/graal # These sources will be built
 HYPERFOIL_HOME=/home/rtoyonag/tools/hyperfoil-0.24.1
-GRAALVM_SOURCE_HOME=/home/rtoyonag/IdeaProjects/graal
+MX_HOME=/home/rtoyonag/repos/mx
+# ----------------------------------------------------------------------
 
 TEST=("With JFR" "Without JFR enabled" "Without JFR in build")
 RUNS=("./target/getting-started-1.0.0-SNAPSHOT-runner_jfr -XX:+FlightRecorder -XX:StartFlightRecording=settings=$THIS_REPO/quarkus-demo.jfc,filename=performance_test.jfr" './target/getting-started-1.0.0-SNAPSHOT-runner_jfr' './target/getting-started-1.0.0-SNAPSHOT-runner_no_jfr')
-RESULTS=("" "" "")
+RESULTS_NORMAL=("" "" "" "" "" "")
 FILESIZE=(0 0)
-RSS=(0 0 0)
-STARTUP=(0 0 0)
+RSS=(0 0 0 0 0 0)
+STARTUP=(0 0 0 0 0 0)
 COUNT=0
 IMAGE_NAME_ORIGINAL=target/getting-started-1.0.0-SNAPSHOT-runner
 IMAGE_NAME_JFR="${IMAGE_NAME_ORIGINAL}_jfr"
 IMAGE_NAME_NO_JFR="${IMAGE_NAME_ORIGINAL}_no_jfr"
+BUILD_GRAAL=true
+BUILD_QUARKUS=true
 
 set_up_hyperfoil(){
     echo "Setting Up Hyperfoil"
 
     # Upload benchmark
-    printf "start-local\nupload %s/jfr_plaintext.hf.yaml\nexit\n" "$THIS_REPO" | $HYPERFOIL_HOME/bin/cli.sh
+    printf "start-local\nupload %s/$1\nexit\n" "$THIS_REPO" | $HYPERFOIL_HOME/bin/cli.sh
 
     # Start controller
     $HYPERFOIL_HOME/bin/standalone.sh > waste.txt &
@@ -40,15 +47,15 @@ set_up_hyperfoil(){
 run_hyperfoil_benchmark(){
 
     # start the benchmark
-    NAME=`curl "http://0.0.0.0:8090/benchmark/jfr-hyperfoil/start" | python3 -c "import sys, json; print(json.load(sys.stdin)['id'])"`
+    NAME=$(curl "http://0.0.0.0:8090/benchmark/jfr-hyperfoil/start" | python3 -c "import sys, json; print(json.load(sys.stdin)['id'])")
 
     # sleep until test is done
     sleep 7
 
     # Get and parse results
-    readarray -d',' results < <(curl "http://localhost:8090/run/${NAME}/stats/all/json" | python3 $THIS_REPO/json_parser.py)
+    readarray -d' ' results < <(curl "http://localhost:8090/run/${NAME}/stats/all/json" | python3 $THIS_REPO/json_parser.py)
 
-    echo "MEAN ${results[0]} MAX ${results[1]} 50 ${results[2]} 90 ${results[3]} 99 ${results[4]} errors ${results[5]}"
+    echo "MEAN $((results[0]/1000)) us, MAX $((results[1]/1000)) us, 50 $((results[2]/1000)) us, 90 $((results[3]/1000)) us, 99 $((results[4]/1000)) us, errors ${results[5]}"
 }
 
 shutdown_hyperfoil() {
@@ -76,7 +83,7 @@ run_test() {
     start=$(date +%s%N)
 
     # run the quarkus app
-    ${RUNS[$COUNT]} > waste.txt & CURRENT_PID=$!
+    ${RUNS[$((COUNT%3))]} > waste.txt & CURRENT_PID=$!
 
     wait_for_quarkus
     end=$(date +%s%N)
@@ -91,9 +98,13 @@ run_test() {
 }
 
 build_images() {
-    cd GRAALVM_SOURCE_HOME/substratevm
-    git checkout master
-    #mx build
+    if $BUILD_GRAAL
+    then
+        cd $GRAALVM_SOURCE_HOME/substratevm
+        git checkout master
+        $MX_HOME/mx clean # clean first is crucial
+        $MX_HOME/mx build
+    fi
 
     cd $THIS_REPO
 
@@ -114,16 +125,42 @@ get_image_sizes() {
     FILESIZE[1]=$(stat -c%s "$IMAGE_NAME_NO_JFR")
 }
 
+
+while getopts "gq" flag
+do
+    case "${flag}" in
+        g) BUILD_GRAAL=false; echo "Running Quarkus rebuild then hyperfoil";;
+        q) BUILD_QUARKUS=false; echo "Running hyperfoil only";;
+        *)
+    esac
+done
+
 echo "Starting Performance Test"
 cd $THIS_REPO
 
-build_images
+if $BUILD_QUARKUS
+then
+  build_images
+fi
+
 get_image_sizes
 
 # Disable turbo boost and start testing (need to run  sudo ./test.sh)
 echo 1 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo
 
-set_up_hyperfoil
+set_up_hyperfoil "normal_case_benchmark.hf.yaml"
+
+# Do test
+for i in "${RUNS[@]}"
+do
+    run_test
+    COUNT=$COUNT+1
+done
+
+
+shutdown_hyperfoil
+
+set_up_hyperfoil "worst_case_benchmark.hf.yaml"
 
 # Do test
 for i in "${RUNS[@]}"
@@ -148,7 +185,7 @@ for ((i=0; i<3; i++));
 do
     echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" >> performance_test_results.txt
     echo "Run ${TEST[$i]}" >> performance_test_results.txt
-    echo "RSS is ${RSS[$i]}" >> performance_test_results.txt
-    echo "StartUp $((${STARTUP[$i]}/1000000)) ms.">> performance_test_results.txt
-    echo "Stats ${RESULTS[$i]}" >> performance_test_results.txt
+    echo "Normal RSS is ${RSS[$i]}. Worst case RSS is ${RSS[$((i+3))]}" >> performance_test_results.txt
+    echo "Normal StartUp $((${STARTUP[$i]}/1000000)) ms. Worst case StartUp $((${STARTUP[$((i+3))]}/1000000)) ms.">> performance_test_results.txt
+    echo "Normal Stats ${RESULTS[$i]}. Worst case Stats ${RESULTS[$((i+3))]}" >> performance_test_results.txt
 done

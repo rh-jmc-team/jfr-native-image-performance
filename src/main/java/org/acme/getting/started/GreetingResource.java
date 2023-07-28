@@ -27,8 +27,15 @@ public class GreetingResource {
 
     @GET
     @Produces(MediaType.TEXT_PLAIN)
-    @Path("/work")
+    @Path("/work/{text}")
     public String work(String text) {
         return service.work(text);
+    }
+
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("/regular/{text}")
+    public String regular(String text) {
+        return service.regular(text);
     }
 }
