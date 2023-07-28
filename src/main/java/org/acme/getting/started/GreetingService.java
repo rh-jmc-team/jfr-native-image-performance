@@ -39,17 +39,17 @@ public class GreetingService {
     /** This endpoint is used to compare between with/without JFR built into the image.
      * Therefore it must not use any custom JFR events or the Event API at all, to avoid runtime errors.
      * It should have less unrealistic tasks, unlike GreetingService#work which simply loops to create many events.*/
-    public String regular(String text) { //TODO not sure how to highlight differences here.
+    public String regular(String text) {
         String result = text;
-//        int count = (int) (Math.random() * (30)) + 10;
-//
-//        for (int i = 0; i < 100; i++) {
-//            String temp = Integer.toString(result.hashCode()).repeat(count);
-//            result = "";
-//            for (int j = 0; j < temp.length(); j += 2) {
-//                result += temp.charAt(j);
-//            }
-//        }
+        int count = (int) (Math.random() * (20)) + 10;
+
+        String temp = Integer.toString(result.hashCode()).repeat(count);
+        result = "";
+        for (int j = 0; j < temp.length(); j += 2) {
+            result += temp.charAt(j);
+        }
+
+        // Ensure an event is emitted
         LockSupport.parkNanos(this,1);
         return result;
     }
