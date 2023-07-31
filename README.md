@@ -1,15 +1,17 @@
 # jfr-native-image-performance
 
 ### Summary
-This test builds graalvm master branch and uses it to build a simple custom Quarkus native app that has been rigged to produce more JFR events. It measures time to first repsonse, RSS (measured upon start up), image size, and runs a hyperfoil benchmark to gather repsone time data. Then it produces `performance_test_results.txt` which summarizes the results. 
+This test builds graalvm branch and uses it to build a simple custom Quarkus native app that has been rigged to produce more JFR events. It measures time to first repsonse, RSS (measured upon start up), image size, and runs a hyperfoil benchmark to gather response time data. Then it produces `performance_test_results.txt` which summarizes the results. 
 
 ### Configurations Tested
 
-- Master branch without JFR in the image build
-- Master branch with JFR recording 
-- Master branch with JFR in the build but not recording
+1. Master branch without JFR in the image build
+2. Master branch with JFR recording 
+3. Master branch with JFR in the build but not recording
+4. Development branch with new commits
+5. Development branch without new commits
 
-These three configurations are each tested using two different hyperfoil benchmarks. The same quarkus app is used for both, just at different endpoints. 
+Configurations 1-3 or 4-5 can be tested in a single run. The first three configurations are each tested using two different hyperfoil benchmarks. The same quarkus app is used for both, just at different endpoints.
 
 The `normal_case_benchmark.hf.yaml` benchmark hits an endpoint that is supposed to be more similar to what a quarkus app might do under normal circumstances (possibly emitting a few events while handling the request). For example, this scenario is useful for obtaining some rough figures describing how JFR is impacting performance in general. 
 
@@ -29,11 +31,11 @@ Before running the test, set the paths at the top of `master_test.sh`.
 
 `sudo ./master_test.sh`  To build master branch and build everything from scratch before running.
 
-`sudo ./master_test.sh -g` To skip building graalVM native-image utility and only rebuild quarkus apps before running the test.
+Add the option `-g` To skip building graalVM native-image utility and only rebuild quarkus apps before running the test.
 
-`sudo ./master_test.sh -q` To skip building graalVM and skip rebuilding the quarkus apps. Simply run the tests on the quarkus native executables that are already built.
+Add the option `-q` To skip building graalVM and skip rebuilding the quarkus apps. Simply run the tests on the quarkus native executables that are already built.
 
-Use the `-d` option to test the development branch. This will run the "worst case" benchmark only. It will build the dev branch with JFR in the image build, then build the quarkus app with the dev changes. It will also build a commit you specify and run the same steps as a "control" for comparison purposes. You probably want to specify the commit as the first hash before you begam making changes. Specify the dev branch name and the commit hash to use for comparison by altering the appropriate lines in the header of `master_test.sh`. 
+Add the option `-d` to test the development branch (configurations 4-5). This will run the "worst case" benchmark only. It will build the dev branch with JFR in the image build, then build the quarkus app with the dev changes. It will also build a commit you specify and run the same steps as a "control" for comparison purposes. You probably want to specify the commit as the first hash before you begam making changes. Specify the dev branch name and the commit hash to use for comparison by altering the appropriate lines in the header of `master_test.sh`. 
 
 For example:
 `sudo ./master_test.sh -d` To build and run the full test on the development branch.
