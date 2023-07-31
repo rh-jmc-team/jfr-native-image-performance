@@ -15,8 +15,9 @@ CLEAN_COMMIT="8b3c03fbf48574362267584abab70588beb19614"
 # ----------------------------------------------------------------------
 RESULTS=("" "" "" "" "" "")
 FILESIZE=(0 0)
-RSS=(0 0 0 0 0 0)
-STARTUP=(0 0 0 0 0 0)
+RSS=()
+RSS_STARTUP_POOL_SIZE=5
+STARTUP=()
 COUNT=0
 IMAGE_NAME_ORIGINAL=target/getting-started-1.0.0-SNAPSHOT-runner
 IMAGE_NAME_JFR="${IMAGE_NAME_ORIGINAL}_jfr"
@@ -83,19 +84,24 @@ shutdown_quarkus() {
 }
 
 run_test() {
-    # Clear caches (Greatly affects startup time)
-    sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'
-    start=$(date +%s%N)
+    for ((i=0; i<RSS_STARTUP_POOL_SIZE; i++));
+    do
+          shutdown_quarkus
+          # Clear caches (Greatly affects startup time)
+          sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'
 
-    # run the quarkus app
-    ${RUNS[$((COUNT%RUN_COUNT))]} > waste.txt & CURRENT_PID=$!
+          start=$(date +%s%N)
 
-    wait_for_quarkus
-    end=$(date +%s%N)
-    STARTUP[$COUNT]=$(("$end" - "$start"))
+          # run the quarkus app
+          ${RUNS[$((COUNT%RUN_COUNT))]} > waste.txt & CURRENT_PID=$!
 
-    # Get rss
-    RSS[$COUNT]=$(ps -o rss= -p $CURRENT_PID | sed 's/^ *//g')
+          wait_for_quarkus
+          end=$(date +%s%N)
+          STARTUP+=($(("$end" - "$start")))
+
+          # Get rss
+          RSS+=($(ps -o rss= -p $CURRENT_PID | sed 's/^ *//g'))
+    done
 
     # Run benchmark
     RESULTS[$COUNT]="$(run_hyperfoil_benchmark)"
@@ -138,7 +144,7 @@ build_images() {
 
     cd $THIS_REPO
 
-    #must use sigprof based handler always! Otherwise too many meaningless recurrign callback samples
+    #must use sigprof based handler always! Otherwise too many meaningless recurring callback samples
     ./mvnw package -Dnative -DskipTests -Dquarkus.native.monitoring=jfr  -Dquarkus.native.additional-build-args=-H:+SignalHandlerBasedExecutionSampler
 
     mv $IMAGE_NAME_ORIGINAL $IMAGE_NAME_JFR
@@ -220,25 +226,49 @@ shutdown_hyperfoil
 # enable turbo boost again
 echo 0 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo
 
-
-echo "*****************************" >> performance_test_results.txt
-echo $(date) >> performance_test_results.txt
-echo "Size with JFR in build = ${FILESIZE[0]} bytes." >> performance_test_results.txt
-echo "Size without JFR in build = ${FILESIZE[1]} bytes." >> performance_test_results.txt
+{
+  echo "*****************************"
+  echo "$(date)"
+  echo "Size with JFR in build = ${FILESIZE[0]} bytes."
+  echo "Size without JFR in build = ${FILESIZE[1]} bytes."
+} >> performance_test_results.txt
 
 for ((i=0; i<RUN_COUNT; i++));
 do
     echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" >> performance_test_results.txt
     echo "Run ${TEST[$i]}" >> performance_test_results.txt
+
+    # Compute average RSS
+    sum=0
+    start="$((RSS_STARTUP_POOL_SIZE*i))"
+    for rss in "${RSS[@]:start:RSS_STARTUP_POOL_SIZE}"
+    do
+      ((sum+=rss))
+    done
+    ((avg_rss=sum/RSS_STARTUP_POOL_SIZE))
+
+    # Compute average start up time
+    sum=0
+    for start_up in "${STARTUP[@]:start:RSS_STARTUP_POOL_SIZE}"
+    do
+      ((sum+=start_up))
+    done
+    ((avg_startup=sum/RSS_STARTUP_POOL_SIZE))
+
     if ! $TEST_DEV
     then
-          echo "Normal RSS is ${RSS[$i]}. Worst case RSS is ${RSS[$((i+RUN_COUNT))]}" >> performance_test_results.txt
-          echo "Normal StartUp $((${STARTUP[$i]}/1000000)) ms. Worst case StartUp $((${STARTUP[$((i+RUN_COUNT))]}/1000000)) ms.">> performance_test_results.txt
-          echo "Normal Stats ${RESULTS[$i]}. Worst case Stats ${RESULTS[$((i+RUN_COUNT))]}" >> performance_test_results.txt
+          {
+            echo "Average (of $RSS_STARTUP_POOL_SIZE) RSS is $avg_rss."
+            echo "Average (of $RSS_STARTUP_POOL_SIZE) StartUp $((avg_startup/1000000)) ms."
+            echo "Normal Stats ${RESULTS[$i]}. Worst case Stats ${RESULTS[$((i+RUN_COUNT))]}"
+          } >> performance_test_results.txt
+
     else
-          echo "Normal RSS is ${RSS[$i]}." >> performance_test_results.txt
-          echo "Normal StartUp $((${STARTUP[$i]}/1000000)) ms.">> performance_test_results.txt
-          echo "Normal Stats ${RESULTS[$i]}." >> performance_test_results.txt
+          {
+            echo "Average (of $RSS_STARTUP_POOL_SIZE) RSS is $avg_rss."
+            echo "Average (of $RSS_STARTUP_POOL_SIZE) StartUp $((avg_startup/1000000)) ms."
+            echo "Stats ${RESULTS[$i]}."
+          } >> performance_test_results.txt
     fi
 
 done

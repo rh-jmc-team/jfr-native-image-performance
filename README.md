@@ -19,10 +19,16 @@ The `worst_case_benchmark.hf.yaml` benchmark is supposed to generate an unrealis
 
 ### Requirements
 
-- linux
+- Java 17+
+- ps
 - python3
 - hyperfoil
 - mx
+- glibc-devel
+- gcc
+- linux
+
+If you are interested in this project, you probably already have been using most of these tools in order build native image executables. The only requirement you may be missing is [Hyperfoil](https://hyperfoil.io/).
 
 ### Usage
 Before running the test, set the paths at the top of `master_test.sh`.
