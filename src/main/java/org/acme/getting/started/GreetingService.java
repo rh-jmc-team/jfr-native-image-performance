@@ -29,7 +29,7 @@ public class GreetingService {
             }
             // This adds about 5ms when jfr is enabled
             CustomEvent customEvent = new CustomEvent();
-            customEvent.message = result;
+            customEvent.message = result.substring(0,2);
             customEvent.commit();
         }
 

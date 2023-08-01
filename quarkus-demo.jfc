@@ -138,7 +138,7 @@
 
   <event name="jdk.ExecutionSample">
     <setting name="enabled" control="method-sampling-enabled">true</setting>
-    <setting name="period" control="method-sampling-java-interval">1 ms</setting>
+    <setting name="period" control="method-sampling-java-interval">100 ns</setting>
   </event>
 
   <event name="jdk.NativeMethodSample">

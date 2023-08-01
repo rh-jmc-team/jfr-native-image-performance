@@ -47,3 +47,5 @@ For example:
 `sudo ./master_test.sh -d` To build and run the full test on the development branch.
 
 `sudo ./master_test.sh -d -q` To skip all building and run only the hyperfoil benchmark to test the development branch changes. This only works if you've already built the images previously.
+
+Add the option `-j` to run in Java mode. This is really just for comparison purposes.

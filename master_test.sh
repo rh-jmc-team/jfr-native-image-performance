@@ -27,9 +27,10 @@ IMAGE_NAME_CLEAN="${IMAGE_NAME_ORIGINAL}_clean"
 BUILD_GRAAL=true
 BUILD_QUARKUS=true
 TEST_DEV=false
+TEST_JAVA=false
 RUN_COUNT=0
 TEST=("With JFR" "Without JFR enabled" "Without JFR in build")
-RUNS=("./$IMAGE_NAME_JFR -XX:+FlightRecorder -XX:StartFlightRecording=settings=$THIS_REPO/quarkus-demo.jfc,filename=performance_test.jfr" "./$IMAGE_NAME_JFR" "./$IMAGE_NAME_NO_JFR")
+RUNS=("./$IMAGE_NAME_JFR -XX:+FlightRecorder -XX:StartFlightRecording=settings=$THIS_REPO/quarkus-demo.jfc,duration=4s,filename=performance_test.jfr" "./$IMAGE_NAME_JFR" "./$IMAGE_NAME_NO_JFR")
 
 set_up_hyperfoil(){
     echo "Setting Up Hyperfoil"
@@ -132,13 +133,16 @@ build_images() {
     cd $THIS_REPO
     ./mvnw package -Dnative -DskipTests -Dquarkus.native.monitoring=jfr  -Dquarkus.native.additional-build-args=-H:+SignalHandlerBasedExecutionSampler
     mv $IMAGE_NAME_ORIGINAL $IMAGE_NAME_CLEAN
-
+  elif $TEST_JAVA
+  then
+    cd $THIS_REPO
+    ./mvnw package
   else
     if $BUILD_GRAAL
       then
           cd $GRAALVM_SOURCE_HOME/substratevm
           git checkout master
-          $MX_HOME/mx clean # clean first is crucial
+          $MX_HOME/mx clean
           $MX_HOME/mx build
     fi
 
@@ -170,7 +174,7 @@ get_image_sizes() {
 }
 
 
-while getopts "gqd" flag
+while getopts "gqdj" flag
 do
     case "${flag}" in
         g) BUILD_GRAAL=false
@@ -181,6 +185,10 @@ do
           TEST=("With dev changes" "Without dev changes")
           RUNS=("./$IMAGE_NAME_DEV -XX:+FlightRecorder -XX:StartFlightRecording=settings=$THIS_REPO/quarkus-demo.jfc,filename=performance_test.jfr" "./$IMAGE_NAME_CLEAN -XX:+FlightRecorder -XX:StartFlightRecording=settings=$THIS_REPO/quarkus-demo.jfc,filename=performance_test.jfr")
           echo "testing dev branch only";;
+        j) TEST_JAVA=true
+          TEST=("Java mode with JFR" "Java mode without JFR")
+          RUNS=("$JAVA_HOME/bin/java -XX:+FlightRecorder -XX:StartFlightRecording=settings=$THIS_REPO/quarkus-demo.jfc,filename=performance_test_JVM.jfr -jar ./target/quarkus-app/quarkus-run.jar" "$JAVA_HOME/bin/java -jar ./target/quarkus-app/quarkus-run.jar")
+          echo "testing Java mode";;
         *)
     esac
 done
