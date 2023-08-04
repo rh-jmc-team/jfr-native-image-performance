@@ -10,8 +10,8 @@ THIS_REPO=/home/rtoyonag/IdeaProjects/jfr-native-image-performance #The location
 GRAALVM_SOURCE_HOME=/home/rtoyonag/IdeaProjects/graal # These sources will be built
 HYPERFOIL_HOME=/home/rtoyonag/tools/hyperfoil-0.24.1
 MX_HOME=/home/rtoyonag/repos/mx
-DEV_BRANCH="perf-test"
-CLEAN_COMMIT="8b3c03fbf48574362267584abab70588beb19614"
+DEV_BRANCH="temp"
+CLEAN_COMMIT="6263e642125011ce164d882f0b0fedd7c6f0e3d3"
 # ----------------------------------------------------------------------
 RESULTS=("" "" "" "" "" "")
 FILESIZE=(0 0)
@@ -35,9 +35,6 @@ RUNS=("./$IMAGE_NAME_JFR -XX:+FlightRecorder -XX:StartFlightRecording=settings=$
 set_up_hyperfoil(){
     echo "Setting Up Hyperfoil"
 
-    # Upload benchmark
-    printf "start-local\nupload %s/$1\nexit\n" "$THIS_REPO" | $HYPERFOIL_HOME/bin/cli.sh
-
     # Start controller
     $HYPERFOIL_HOME/bin/standalone.sh > waste.txt &
 
@@ -49,6 +46,9 @@ set_up_hyperfoil(){
         :
     done
     echo "-- Done waiting for hyperfoil start-up"
+
+    # Upload benchmark
+    curl -X POST --data-binary @"$1" -H "Content-type: text/vnd.yaml" http://0.0.0.0:8090/benchmark
 }
 
 run_hyperfoil_benchmark(){

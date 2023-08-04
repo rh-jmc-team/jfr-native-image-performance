@@ -11,8 +11,7 @@ public class GreetingService {
     }
 
     private String getNextString(String text) throws InterruptedException {
-        // This adds about 5ms when JFR is enabled
-        LockSupport.parkNanos(1); //Somehow this make it take longer and also increases the gap
+        LockSupport.parkNanos(1);
         LockSupport.parkNanos(this,1);
         return Integer.toString(text.hashCode() % (int) (Math.random() * 100));
     }
@@ -27,8 +26,8 @@ public class GreetingService {
             } catch (Exception e) {
                 // Doesn't matter. Do nothing
             }
-            // This adds about 5ms when jfr is enabled
             CustomEvent customEvent = new CustomEvent();
+            // Only commit the first few letters (goal is to spend time in the JFR piping not committing chars)
             customEvent.message = result.substring(0,2);
             customEvent.commit();
         }
