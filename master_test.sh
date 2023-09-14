@@ -2,16 +2,14 @@
 # Set the paths and variables below before running!
 # ----------------------------------------------------------------------
 
-export JAVA_HOME=/home/rtoyonag/JDKs/labsjdk-ce-20-jvmci-23.0-b10
+export JAVA_HOME=/home/rtoyonag/JDKs/labsjdk-ce-17.0.8+7-jvmci-23.0-b15-linux-amd64/labsjdk-ce-17.0.8-jvmci-23.0-b15
 export GRAALVM_HOME=/home/rtoyonag/IdeaProjects/graal/vm/latest_graalvm_home # This is where GraalVM will be built, or wherever your pre-build installation of GraalVM/Mandrel is
-
-THIS_REPO=/home/rtoyonag/IdeaProjects/jfr-native-image-performance #The location of this repository
 
 GRAALVM_SOURCE_HOME=/home/rtoyonag/IdeaProjects/graal # These sources will be built
 HYPERFOIL_HOME=/home/rtoyonag/tools/hyperfoil-0.24.1
 MX_HOME=/home/rtoyonag/repos/mx
-DEV_BRANCH="temp"
-CLEAN_COMMIT="6263e642125011ce164d882f0b0fedd7c6f0e3d3"
+DEV_BRANCH="object-count-backport"
+CLEAN_COMMIT="602b8236aa85344bf329dc75bd61f59741148d12"
 # ----------------------------------------------------------------------
 RESULTS=("" "" "" "" "" "")
 FILESIZE=(0 0)
@@ -30,7 +28,8 @@ TEST_DEV=false
 TEST_JAVA=false
 RUN_COUNT=0
 TEST=("With JFR" "Without JFR enabled" "Without JFR in build")
-RUNS=("./$IMAGE_NAME_JFR -XX:+FlightRecorder -XX:StartFlightRecording=settings=$THIS_REPO/quarkus-demo.jfc,duration=4s,filename=performance_test.jfr" "./$IMAGE_NAME_JFR" "./$IMAGE_NAME_NO_JFR")
+CWD=$(pwd)
+RUNS=("./$IMAGE_NAME_JFR -XX:+FlightRecorder -XX:StartFlightRecording=settings=$CWD/quarkus-demo.jfc,duration=4s,filename=performance_test.jfr" "./$IMAGE_NAME_JFR" "./$IMAGE_NAME_NO_JFR")
 
 set_up_hyperfoil(){
     echo "Setting Up Hyperfoil"
@@ -40,7 +39,7 @@ set_up_hyperfoil(){
 
     # Wait for hyperfoil controller app to start up
     echo "-- Waiting for hyperfoil to start"
-    while ! (curl -sf http://0.0.0.0:8090/benchmark/jfr-hyperfoil > /dev/null)
+    while ! (curl -sf http://0.0.0.0:8090/openapi > /dev/null)
     do
         # Busy wait rather than wait some arbitrary amount of time and risk waiting too long
         :
@@ -60,7 +59,7 @@ run_hyperfoil_benchmark(){
     sleep 7 #37
 
     # Get and parse results
-    readarray -d' ' results < <(curl "http://localhost:8090/run/${NAME}/stats/all/json" | python3 $THIS_REPO/json_parser.py)
+    readarray -d' ' results < <(curl "http://localhost:8090/run/${NAME}/stats/all/json" | python3 $CWD/json_parser.py)
 
     echo "MEAN $((results[0]/1000)) us, MAX $((results[1]/1000)) us, 50 $((results[2]/1000)) us, 90 $((results[3]/1000)) us, 99 $((results[4]/1000)) us, errors ${results[5]}"
 }
@@ -119,7 +118,7 @@ build_images() {
     $MX_HOME/mx build
 
     # build quarkus using Graal with dev changes
-    cd $THIS_REPO
+    cd $CWD
     ./mvnw package -Dnative -DskipTests -Dquarkus.native.monitoring=jfr  -Dquarkus.native.additional-build-args=-H:+SignalHandlerBasedExecutionSampler
     mv $IMAGE_NAME_ORIGINAL $IMAGE_NAME_DEV
 
@@ -130,12 +129,12 @@ build_images() {
     $MX_HOME/mx build
 
     # Build quarkus using Graal without dev changes
-    cd $THIS_REPO
+    cd $CWD
     ./mvnw package -Dnative -DskipTests -Dquarkus.native.monitoring=jfr  -Dquarkus.native.additional-build-args=-H:+SignalHandlerBasedExecutionSampler
     mv $IMAGE_NAME_ORIGINAL $IMAGE_NAME_CLEAN
   elif $TEST_JAVA
   then
-    cd $THIS_REPO
+    cd $CWD
     ./mvnw package
   else
     if $BUILD_GRAAL
@@ -146,7 +145,7 @@ build_images() {
           $MX_HOME/mx build
     fi
 
-    cd $THIS_REPO
+    cd $CWD
 
     #must use sigprof based handler always! Otherwise too many meaningless recurring callback samples
     ./mvnw package -Dnative -DskipTests -Dquarkus.native.monitoring=jfr  -Dquarkus.native.additional-build-args=-H:+SignalHandlerBasedExecutionSampler
@@ -183,18 +182,17 @@ do
           echo "Running hyperfoil only";;
         d) TEST_DEV=true
           TEST=("With dev changes" "Without dev changes")
-          RUNS=("./$IMAGE_NAME_DEV -XX:+FlightRecorder -XX:StartFlightRecording=settings=$THIS_REPO/quarkus-demo.jfc,filename=performance_test.jfr" "./$IMAGE_NAME_CLEAN -XX:+FlightRecorder -XX:StartFlightRecording=settings=$THIS_REPO/quarkus-demo.jfc,filename=performance_test.jfr")
+          RUNS=("./$IMAGE_NAME_DEV -XX:+FlightRecorder -XX:StartFlightRecording=settings=$CWD/quarkus-demo.jfc,duration=4s,filename=performance_test_dev.jfr" "./$IMAGE_NAME_CLEAN -XX:+FlightRecorder -XX:StartFlightRecording=settings=$CWD/quarkus-demo.jfc,duration=4s,filename=performance_test_clean.jfr")
           echo "testing dev branch only";;
         j) TEST_JAVA=true
           TEST=("Java mode with JFR" "Java mode without JFR")
-          RUNS=("$JAVA_HOME/bin/java -XX:+FlightRecorder -XX:StartFlightRecording=settings=$THIS_REPO/quarkus-demo.jfc,filename=performance_test_JVM.jfr -jar ./target/quarkus-app/quarkus-run.jar" "$JAVA_HOME/bin/java -jar ./target/quarkus-app/quarkus-run.jar")
+          RUNS=("$JAVA_HOME/bin/java -XX:+FlightRecorder -XX:StartFlightRecording=settings=$CWD/quarkus-demo.jfc,filename=performance_test_JVM.jfr -jar ./target/quarkus-app/quarkus-run.jar" "$JAVA_HOME/bin/java -jar ./target/quarkus-app/quarkus-run.jar")
           echo "testing Java mode";;
         *)
     esac
 done
 
 echo "Starting Performance Test"
-cd $THIS_REPO
 RUN_COUNT=${#RUNS[@]}
 
 if $BUILD_QUARKUS

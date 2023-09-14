@@ -138,7 +138,7 @@
 
   <event name="jdk.ExecutionSample">
     <setting name="enabled" control="method-sampling-enabled">true</setting>
-    <setting name="period" control="method-sampling-java-interval">100 ns</setting>
+    <setting name="period" control="method-sampling-java-interval">1 ms</setting>
   </event>
 
   <event name="jdk.NativeMethodSample">
@@ -250,7 +250,7 @@
   </event>
 
   <event name="jdk.ObjectCount">
-    <setting name="enabled" control="gc-enabled-all">false</setting>
+    <setting name="enabled" control="gc-enabled-all">true</setting>
     <setting name="period">everyChunk</setting>
   </event>
 
@@ -280,7 +280,7 @@
   </event>
 
   <event name="jdk.ObjectCountAfterGC">
-    <setting name="enabled">false</setting>
+    <setting name="enabled">true</setting>
   </event>
 
   <event name="jdk.GCHeapSummary">
@@ -543,22 +543,22 @@
 
   <event name="jdk.ContainerCPUUsage">
     <setting name="enabled">true</setting>
-    <setting name="period">30 s</setting>
+    <setting name="period">1 s</setting>
   </event>
 
   <event name="jdk.ContainerCPUThrottling">
     <setting name="enabled">true</setting>
-    <setting name="period">30 s</setting>
+    <setting name="period">1 s</setting>
   </event>
 
   <event name="jdk.ContainerMemoryUsage">
     <setting name="enabled">true</setting>
-    <setting name="period">30 s</setting>
+    <setting name="period">1 s</setting>
   </event>
 
   <event name="jdk.ContainerIOUsage">
     <setting name="enabled">true</setting>
-    <setting name="period">30 s</setting>
+    <setting name="period">1 s</setting>
   </event>
 
   <event name="jdk.CPUInformation">
