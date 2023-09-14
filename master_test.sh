@@ -28,6 +28,8 @@ TEST_DEV=false
 TEST_JAVA=false
 RUN_COUNT=0
 TEST=("With JFR" "Without JFR enabled" "Without JFR in build")
+ENDPOINT=("regular" "work")
+ENDPOINT_COUNT=0
 CWD=$(pwd)
 RUNS=("./$IMAGE_NAME_JFR -XX:+FlightRecorder -XX:StartFlightRecording=settings=$CWD/quarkus-demo.jfc,duration=4s,filename=performance_test.jfr" "./$IMAGE_NAME_JFR" "./$IMAGE_NAME_NO_JFR")
 
@@ -47,13 +49,13 @@ set_up_hyperfoil(){
     echo "-- Done waiting for hyperfoil start-up"
 
     # Upload benchmark
-    curl -X POST --data-binary @"$1" -H "Content-type: text/vnd.yaml" http://0.0.0.0:8090/benchmark
+    curl -X POST --data-binary @"benchmark.hf.yaml" -H "Content-type: text/vnd.yaml" http://0.0.0.0:8090/benchmark
 }
 
 run_hyperfoil_benchmark(){
 
     # start the benchmark
-    NAME=$(curl "http://0.0.0.0:8090/benchmark/jfr-hyperfoil/start" | python3 -c "import sys, json; print(json.load(sys.stdin)['id'])")
+    NAME=$(curl "http://0.0.0.0:8090/benchmark/jfr-hyperfoil/start?templateParam=ENDPOINT=${ENDPOINT[$ENDPOINT_COUNT]}" | python3 -c "import sys, json; print(json.load(sys.stdin)['id'])")
 
     # sleep until test is done
     sleep 7 #37
@@ -207,7 +209,7 @@ echo 1 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo
 
 if ! $TEST_DEV
 then
-  set_up_hyperfoil "normal_case_benchmark.hf.yaml"
+  set_up_hyperfoil
   # Do test
   for i in "${RUNS[@]}"
   do
@@ -217,7 +219,8 @@ then
   shutdown_hyperfoil
 fi
 
-set_up_hyperfoil "worst_case_benchmark.hf.yaml"
+ENDPOINT_COUNT=$ENDPOINT_COUNT+1
+set_up_hyperfoil
 
 # Do test
 for i in "${RUNS[@]}"
