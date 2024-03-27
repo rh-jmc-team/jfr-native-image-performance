@@ -1,11 +1,5 @@
 #!/bin/bash
-# Set the paths and variables below before running!
-# ----------------------------------------------------------------------
-GRAALVM_SOURCE_HOME=/home/rtoyonag/IdeaProjects/graal # These sources will be built
-MX_HOME=/home/rtoyonag/repos/mx
-DEV_BRANCH="object-count-backport"
-CLEAN_COMMIT="602b8236aa85344bf329dc75bd61f59741148d12"
-# ----------------------------------------------------------------------
+
 RESULTS=("" "" "" "" "" "")
 FILESIZE=(0 0)
 RSS=()
@@ -181,6 +175,7 @@ do
         g) BUILD_GRAAL=false
           echo "Running Quarkus rebuild then hyperfoil";;
         q) BUILD_QUARKUS=false
+          BUILD_GRAAL=false
           echo "Running hyperfoil only";;
         d) TEST_DEV=true
           TEST_NAMES=("With dev changes" "Without dev changes")
@@ -225,6 +220,26 @@ fi
 
 if [[ ! -d $HYPERFOIL_HOME ]]; then
     echo "HYPERFOIL_HOME not found."
+    exit 1
+fi
+
+if [[ "$BUILD_GRAAL" == "true" && -z $GRAALVM_SOURCE_HOME ]]; then
+    echo "Please set GRAALVM_SOURCE_HOME prior to starting test."
+    exit 1
+fi
+
+if [[ "$BUILD_GRAAL" == "true" && -z $MX_HOME ]]; then
+    echo "Please set MX_HOME prior to starting test."
+    exit 1
+fi
+
+if [[ "$TEST_DEV" == "true" && -z $CLEAN_COMMIT ]]; then
+    echo "Please set CLEAN_COMMIT prior to starting test."
+    exit 1
+fi
+
+if [[ "$TEST_DEV" == "true" && -z $DEV_BRANCH ]]; then
+    echo "Please set DEV_BRANCH prior to starting test."
     exit 1
 fi
 
