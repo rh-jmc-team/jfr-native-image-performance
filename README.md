@@ -13,9 +13,13 @@ This test builds graalvm branch and uses it to build a simple custom Quarkus nat
 
 Configurations 1-3 or 4-5 can be tested in a single run. The first three configurations are each tested using two different hyperfoil benchmarks. The same quarkus app is used for both, just at different endpoints.
 
-The `normal_case_benchmark.hf.yaml` benchmark hits an endpoint that is supposed to be more similar to what a quarkus app might do under normal circumstances (possibly emitting a few events while handling the request). For example, this scenario is useful for obtaining some rough figures describing how JFR is impacting performance in general. 
+The Quarkus app has two endpoints `regular` and `work` which are meant to be used for two different benchmarks. 
 
-The `worst_case_benchmark.hf.yaml` benchmark is supposed to generate an unrealistic number of JFR events. This should help highlight the impact any changes to the substrateVM JFR infrastructure have on performance. For example, this scenario is useful for testing with/without new development changes before deciding to merge them.
+The `regular` endpoint is supposed to be more similar to what a quarkus app might do under normal circumstances (possibly emitting a few events while handling the request). For example, this scenario is useful for obtaining some rough figures describing how JFR is impacting performance in general. 
+
+The `work` endpoint generates an unrealistic number of JFR events. This should help highlight the impact any changes to the substrateVM JFR infrastructure have on performance. For example, this scenario is useful for testing with/without new development changes before deciding to merge them.
+
+Hyperfoil templating is used to select between the endpoints depending on the benchmark being performed.
 
 ### Requirements
 
@@ -35,7 +39,7 @@ Before running the test, set the paths at the top of `master_test.sh`.
 
 `sudo` is needed to turn off turbo boost and clear caches. 
 
-`sudo ./master_test.sh`  To build master branch and build everything from scratch before running.
+`sudo -E ./master_test.sh`  To build master branch and build everything from scratch before running. Use `-E` so the environment variables are accessible. 
 
 Add the option `-g` To skip building graalVM native-image utility and only rebuild quarkus apps before running the test.
 

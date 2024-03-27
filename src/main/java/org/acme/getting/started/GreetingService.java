@@ -13,7 +13,7 @@ public class GreetingService {
     private String getNextString(String text) throws InterruptedException {
         LockSupport.parkNanos(1);
         LockSupport.parkNanos(this,1);
-        return Integer.toString(text.hashCode() % (int) (Math.random() * 100));
+        return Integer.toString(text.hashCode() % (int) (Math.random() * 100 + 1)); // +1 to avoid division by 0
     }
 
     /** This endpoint is used to test new JFR development changes. Always with JFR recording.
@@ -24,11 +24,11 @@ public class GreetingService {
             try {
                 result += getNextString(text);
             } catch (Exception e) {
-                // Doesn't matter. Do nothing
+                System.out.println("work enpoint task failed."+ e);
             }
             CustomEvent customEvent = new CustomEvent();
-            // Only commit the first few letters (goal is to spend time in the JFR piping not committing chars)
-            customEvent.message = result.substring(0,2);
+            // Only commit the first letter (goal is to spend time in the JFR piping not committing chars)
+            customEvent.message = result.substring(0,1);
             customEvent.commit();
         }
 
