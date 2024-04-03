@@ -612,13 +612,13 @@
   </event>
 
   <event name="jdk.ObjectAllocationInNewTLAB">
-    <setting name="enabled" control="gc-enabled-high">true</setting>
-    <setting name="stackTrace">true</setting>
+    <setting name="enabled" control="gc-enabled-high">false</setting>
+    <setting name="stackTrace">false</setting>
   </event>
 
   <event name="jdk.ObjectAllocationOutsideTLAB">
-    <setting name="enabled" control="gc-enabled-high">true</setting>
-    <setting name="stackTrace">true</setting>
+    <setting name="enabled" control="gc-enabled-high">false</setting>
+    <setting name="stackTrace">false</setting>
   </event>
 
   <event name="jdk.ObjectAllocationSample">

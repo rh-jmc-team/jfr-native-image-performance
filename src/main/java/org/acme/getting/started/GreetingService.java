@@ -24,12 +24,12 @@ public class GreetingService {
             try {
                 result += getNextString(text);
             } catch (Exception e) {
-                System.out.println("work enpoint task failed."+ e);
+                System.out.println("----------work endpoint task failed----------"+ e);
             }
-            CustomEvent customEvent = new CustomEvent();
+            // CustomEvent customEvent = new CustomEvent();
             // Only commit the first letter (goal is to spend time in the JFR piping not committing chars)
-            customEvent.message = result.substring(0,1);
-            customEvent.commit();
+            // customEvent.message = result.substring(0,1);
+            // customEvent.commit();
         }
 
         return result;
