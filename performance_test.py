@@ -25,7 +25,7 @@ measurements = {
 
 BUILD_IMAGES = True
 MODE = ""
-ITERATIONS = 12
+ITERATIONS = 10
 BENCHMARK = ""
 IMAGE_NAME_ORIGINAL = "target/getting-started-1.0.0-SNAPSHOT-runner"
 IMAGE_NAME_JFR = IMAGE_NAME_ORIGINAL+"_jfr"
@@ -38,11 +38,9 @@ RUN_COMMANDS = []
 
 
 def check_endpoint(endpoint):
-    # Define the command to execute
-    curl_command = "curl -sf " + endpoint + " > /dev/null"
     # Execute the command and check the result
     try:
-        subprocess.run(curl_command, shell=True, check=True)
+        subprocess.run("curl -sf " + endpoint + " > /dev/null", shell=True, check=True)
         return True  # Return True if the command succeeds
     except subprocess.CalledProcessError:
         return False  # Return False if the command fails
@@ -50,7 +48,7 @@ def check_endpoint(endpoint):
 
 def set_up_hyperfoil():
     # Start controller
-    subprocess.run(HYPERFOIL_HOME+"/bin/standalone.sh > output_dump"+datetime.now().isoformat()+".txt &", shell=True, check=True)
+    subprocess.run(HYPERFOIL_HOME + "/bin/standalone.sh > output_dump" + datetime.now().isoformat() + ".txt &", shell=True, check=True)
 
     # Wait for hyperfoil controller app to start up
     # Busy wait rather than wait some arbitrary amount of time and risk waiting too long
@@ -89,11 +87,11 @@ def wait_for_quarkus():
 
 
 def enableTurboBoost(enable):
-    set = 1
+    bit = 1
     if enable:
-        set = 0
+        bit = 0
     try:
-        subprocess.run("echo "+str(set)+" | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo", shell=True, check=True)
+        subprocess.run("echo " + str(bit) + " | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo", shell=True, check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error executing command: {e}")
 
@@ -103,7 +101,7 @@ def run_hyperfoil_benchmark(config):
     name = ""
     try:
         # TODO remove embedded python ported from bash script
-        process = subprocess.run("curl \"http://0.0.0.0:8090/benchmark/jfr-hyperfoil/start?templateParam=ENDPOINT="+BENCHMARK +"\" | python3 -c \"import sys, json; print(json.load(sys.stdin)['id'])\"", shell=True, check=True, capture_output=True, text=True)
+        process = subprocess.run("curl \"http://0.0.0.0:8090/benchmark/jfr-hyperfoil/start?templateParam=ENDPOINT=" + BENCHMARK + "\" | python3 -c \"import sys, json; print(json.load(sys.stdin)['id'])\"", shell=True, check=True, capture_output=True, text=True)
         name = str(process.stdout).strip("\n")
     except subprocess.CalledProcessError as e:
         print(f"Error executing command: {e}")
@@ -132,9 +130,10 @@ def run_hyperfoil_benchmark(config):
 # Does a single run of the test, on a single configuration, collecting measurements along the way.
 def run_test(config, config_name):
     print("Starting test for configuration: " + config_name)
-    set_up_hyperfoil()
+    shutdown_hyperfoil()
     shutdown_quarkus()
-
+    set_up_hyperfoil()
+    
     # Clear caches (Greatly affects startup time)
     try:
         subprocess.run(
@@ -206,9 +205,9 @@ def set_global_variables():
         "./" + IMAGE_NAME_NO_JFR,
         # "./" + IMAGE_NAME_JFR,
         "./" + IMAGE_NAME_JFR + " -XX:+FlightRecorder -XX:StartFlightRecording=settings=" +
-        CWD+"/quarkus-demo.jfc,duration=4s,filename=performance_test.jfr",
+        CWD + "/quarkus-demo.jfc,duration=4s,filename=performance_test.jfr",
         JAVA_HOME + "/bin/java -jar ./target/quarkus-app/quarkus-run.jar",
-        JAVA_HOME+"/bin/java -XX:+FlightRecorder -XX:StartFlightRecording=settings="+CWD +
+        JAVA_HOME + "/bin/java -XX:+FlightRecorder -XX:StartFlightRecording=settings=" + CWD +
         "/quarkus-demo.jfc,filename=performance_test_JVM.jfr -jar ./target/quarkus-app/quarkus-run.jar"
     ]
 

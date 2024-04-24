@@ -1,7 +1,7 @@
 # jfr-native-image-performance
 
 ### Summary
-This test builds graalvm branch and uses it to build a simple custom Quarkus native app that has been rigged to produce more JFR events. It measures time to first repsonse, RSS (measured upon start up), image size, and runs a hyperfoil benchmark to gather response time data. Then it produces `report_date.txt` which summarizes the results. 
+This test builds a simple custom Quarkus native app that has been rigged to produce more JFR events. It measures time to first repsonse, RSS (measured upon start up), image size, and runs a hyperfoil benchmark to gather response latency data. Then it produces `report_date.txt` which summarizes the results. 
 
 ### Configurations Tested
 
@@ -24,26 +24,24 @@ Hyperfoil templating is used to select between the endpoints depending on the be
 ### Requirements
 
 - Java 17+
+- GraalVM
 - ps
-- python3
+- python3.8
 - hyperfoil
-- mx
-- glibc-devel
-- gcc
 - linux
 
 If you are interested in this project, you probably already have been using most of these tools in order build native image executables. The only requirement you may be missing is [Hyperfoil](https://hyperfoil.io/).
 
 ### Usage
 Before running the test, export the required environment variables:
-- **JAVA_HOME**:    Path to JDK (always required)
-- **GRAALVM_HOME**:   Path to GraalVM  (always required)
-- **HYPERFOIL_HOME**:    Path to hyperfoil (always required)
+- **JAVA_HOME**:    Path to JDK
+- **GRAALVM_HOME**:   Path to GraalVM
+- **HYPERFOIL_HOME**:    Path to hyperfoil
 
 You may be prompted to enter your password since `sudo` is needed to turn off turbo boost and clear caches. 
 
-Usage: `python3 performance_test.py <endpoint> <allow_building_images>`
+Usage: `python3.8 performance_test.py <endpoint> <allow_building_images>`
 
-`python3 performance_test.py` will build the Native Image Quarkus apps and run the test using the "work" endpoint.
+`python3.8 performance_test.py` will build the Native Image Quarkus apps and run the test using the "work" endpoint.
 
-`python3 performance_test.py regular false` will run the test using the "regular" endpoint without rebuilding the images.
+`python3.8 performance_test.py regular false` will run the test using the "regular" endpoint without rebuilding the images.
