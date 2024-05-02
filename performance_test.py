@@ -25,7 +25,7 @@ measurements = {
 
 BUILD_IMAGES = True
 MODE = ""
-ITERATIONS = 10
+ITERATIONS = 5
 BENCHMARK = ""
 IMAGE_NAME_ORIGINAL = "target/getting-started-1.0.0-SNAPSHOT-runner"
 IMAGE_NAME_JFR = IMAGE_NAME_ORIGINAL+"_jfr"
@@ -208,7 +208,7 @@ def set_global_variables():
         CWD + "/quarkus-demo.jfc,duration=4s,filename=performance_test.jfr",
         JAVA_HOME + "/bin/java -jar ./target/quarkus-app/quarkus-run.jar",
         JAVA_HOME + "/bin/java -XX:+FlightRecorder -XX:StartFlightRecording=settings=" + CWD +
-        "/quarkus-demo.jfc,filename=performance_test_JVM.jfr -jar ./target/quarkus-app/quarkus-run.jar"
+        "/quarkus-demo.jfc,duration=4s,filename=performance_test_JVM.jfr -jar ./target/quarkus-app/quarkus-run.jar"
     ]
 
     # Set mode to stress endpoint by default
@@ -317,7 +317,7 @@ def write_results(file_sizes):
 
         file.write("\n------------------------------------------------\n")
         file.write("Raw Measurements:\n")
-        file.write("These are individual measurements for each iteration. rss is in kB, startup time is ms, all others are in us. \n")
+        file.write("These are individual measurements for each iteration. rss is in kB, startup time is s, all others are in us. \n")
         for config in configurations:
             file.write("\n"+config+":\n")
             for measurement in measurements:
