@@ -25,7 +25,8 @@ measurements = {
 
 BUILD_IMAGES = True
 MODE = ""
-ITERATIONS = 5
+ITERATIONS = 8
+WARM_UPS = 3
 BENCHMARK = ""
 IMAGE_NAME_ORIGINAL = "target/getting-started-1.0.0-SNAPSHOT-runner"
 IMAGE_NAME_JFR = IMAGE_NAME_ORIGINAL+"_jfr"
@@ -205,10 +206,10 @@ def set_global_variables():
         "./" + IMAGE_NAME_NO_JFR,
         # "./" + IMAGE_NAME_JFR,
         "./" + IMAGE_NAME_JFR + " -XX:+FlightRecorder -XX:StartFlightRecording=settings=" +
-        CWD + "/quarkus-demo.jfc,duration=4s,filename=performance_test.jfr",
+        CWD + "/quarkus-demo.jfc,filename=performance_test.jfr",
         JAVA_HOME + "/bin/java -jar ./target/quarkus-app/quarkus-run.jar",
         JAVA_HOME + "/bin/java -XX:+FlightRecorder -XX:StartFlightRecording=settings=" + CWD +
-        "/quarkus-demo.jfc,duration=4s,filename=performance_test_JVM.jfr -jar ./target/quarkus-app/quarkus-run.jar"
+        "/quarkus-demo.jfc,filename=performance_test_JVM.jfr -jar ./target/quarkus-app/quarkus-run.jar"
     ]
 
     # Set mode to stress endpoint by default
@@ -263,20 +264,22 @@ def write_results(file_sizes):
             diff_percentages[diff_percentage][measurement] = []
             diff_percentages[diff_percentage][measurement+"_average"] = 0
 
-    for i in range(ITERATIONS):
+    # Calculate averages omitting warm up runs.
+    kept_runs = (ITERATIONS - WARM_UPS)
+    for i in range(WARM_UPS, ITERATIONS):
         for measurement in measurements:
             result = (configurations["With JFR"][measurement][i] - configurations["Without JFR in build"][measurement][i]) / configurations["Without JFR in build"][measurement][i]
             diff_percentages["ni"][measurement].append(result)
 
-            diff_percentages["ni"][measurement + "_average"] += result / ITERATIONS
+            diff_percentages["ni"][measurement + "_average"] += result / kept_runs
 
             result = (configurations["Java mode with JFR"][measurement][i] - configurations["Java mode without JFR"][measurement][i]) / configurations["Java mode without JFR"][measurement][i]
             diff_percentages["jdk"][measurement].append(result)
 
-            diff_percentages["jdk"][measurement + "_average"] += result / ITERATIONS
+            diff_percentages["jdk"][measurement + "_average"] += result / kept_runs
 
             for config in configurations:
-                configurations[config][measurement + "_average"] += configurations[config][measurement][i] / ITERATIONS
+                configurations[config][measurement + "_average"] += configurations[config][measurement][i] / kept_runs
             
 
     # print(diff_percentages)
@@ -289,8 +292,8 @@ def write_results(file_sizes):
         file.write("GRAALVM_HOME: " + GRAALVM_HOME+"\n")
         file.write("HYPERFOIL_HOME: " + HYPERFOIL_HOME+"\n\n")
 
-        file.write("Image size with JFR: " + file_sizes[0]+"\n")
-        file.write("Image size without JFR: " + file_sizes[1]+"\n")
+        file.write("Image size with JFR: " + file_sizes[0] + " KB\n")
+        file.write("Image size without JFR: " + file_sizes[1] + " KB\n")
 
         file.write("\n------------------------------------------------\n")
         file.write("Average Performance Difference:\n")

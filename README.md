@@ -40,8 +40,8 @@ Before running the test, export the required environment variables:
 
 You may be prompted to enter your password since `sudo` is needed to turn off turbo boost and clear caches. 
 
-Usage: `python3.8 performance_test.py <endpoint> <allow_building_images>`
+Usage: `python performance_test.py <endpoint> <allow_building_images>`
 
-`python3.8 performance_test.py` will build the Native Image Quarkus apps and run the test using the "work" endpoint.
+`python performance_test.py` will build the Native Image Quarkus apps and run the test using the "work" endpoint.
 
-`python3.8 performance_test.py regular false` will run the test using the "regular" endpoint without rebuilding the images.
+`python performance_test.py regular false` will run the test using the "regular" endpoint without rebuilding the images.
